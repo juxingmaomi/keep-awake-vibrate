@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.6';
+  const SCRIPT_VERSION = 'v0.1.7';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -142,15 +142,15 @@
       const style = hostDocument.createElement('style');
       style.id = STYLE_ID;
       style.textContent = `
-        #${ROOT_ID} { position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
+        #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { position: fixed; right: 10px; bottom: calc(92px + env(safe-area-inset-bottom)); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #df5961; cursor: pointer; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; z-index: 2147483647; }
+        #${ROOT_ID} .xw-kav-fab { position: fixed; right: 10px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: rgba(30, 33, 36, .28); color: #df5961; cursor: pointer; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; z-index: 2; }
         #${ROOT_ID} .xw-kav-phone-icon { position: relative; width: 18px; height: 27px; border: 2px solid currentColor; border-radius: 5px; background: rgba(20, 22, 24, .74); box-shadow: 0 3px 10px rgba(0, 0, 0, .3); transition: color .12s ease, box-shadow .12s ease; }
         #${ROOT_ID} .xw-kav-phone-icon::after { content: ''; position: absolute; left: 50%; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; transform: translateX(-50%); }
         #${ROOT_ID} .xw-kav-fab[data-awake='on'] { color: #42ce80; }
         #${ROOT_ID} .xw-kav-fab[data-awake='on'] .xw-kav-phone-icon { box-shadow: 0 0 9px rgba(66, 206, 128, .38), 0 3px 10px rgba(0, 0, 0, .3); }
         #${ROOT_ID} .xw-kav-fab:focus-visible { outline: 2px solid currentColor; outline-offset: -6px; }
-        #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; }
+        #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; z-index: 1; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
         #${ROOT_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
         #${ROOT_ID} .xw-kav-title { margin: 0; font-size: 16px; line-height: 1.3; }
