@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.1';
+  const SCRIPT_VERSION = 'v0.1.2';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -146,10 +146,10 @@
       style.textContent = `
         #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 30px; height: 30px; padding: 0; border: 1px solid rgba(255, 255, 255, .38); border-radius: 50%; background: #9c3f49; color: #fff; box-shadow: 0 3px 10px rgba(95, 24, 33, .36); cursor: grab; font-size: 0; opacity: .88; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity .12s ease, box-shadow .12s ease, background .12s ease, transform .12s ease; }
-        #${ROOT_ID} .xw-kav-fab::before { content: ''; position: absolute; left: 8px; top: 8px; width: 10px; height: 10px; border: 2px solid rgba(255, 255, 255, .92); border-top-color: transparent; border-radius: 50%; }
-        #${ROOT_ID} .xw-kav-fab::after { content: ''; position: absolute; left: 13px; top: 6px; width: 2px; height: 9px; border-radius: 2px; background: rgba(255, 255, 255, .96); box-shadow: 0 0 3px rgba(255, 255, 255, .28); }
-        #${ROOT_ID} .xw-kav-fab[data-awake='on'] { opacity: .98; background: #278b58; box-shadow: 0 0 10px rgba(39, 139, 88, .42), 0 3px 10px rgba(16, 75, 45, .34); }
+        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(185, 192, 199, .5); border-radius: 50%; background: rgba(38, 35, 31, .82); color: transparent; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); cursor: grab; font-size: 0; opacity: .82; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity .12s ease, box-shadow .12s ease, transform .12s ease; }
+        #${ROOT_ID} .xw-kav-fab::after { content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: #e24d55; box-shadow: 0 0 8px rgba(226, 77, 85, .62); transform: translate(-50%, -50%); transition: background .12s ease, box-shadow .12s ease; }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on'] { opacity: .98; box-shadow: 0 0 12px rgba(61, 220, 132, .32), 0 4px 14px rgba(0, 0, 0, .35); }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on']::after { background: #3ddc84; box-shadow: 0 0 9px rgba(61, 220, 132, .72); }
         #${ROOT_ID} .xw-kav-fab:active { cursor: grabbing; }
         #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
@@ -198,7 +198,7 @@
           <button class="xw-kav-action xw-kav-test" type="button">测试震动</button>
         </div>
       </section>
-      <button class="xw-kav-fab" type="button" title="屏幕与震动设置" aria-label="打开屏幕与震动设置">☀</button>
+      <button class="xw-kav-fab" type="button" title="屏幕与震动设置" aria-label="打开屏幕与震动设置"></button>
     `;
     hostDocument.body.appendChild(root);
 
@@ -208,7 +208,7 @@
 
     const placeFab = (x, y, persist = false) => {
       const margin = 6;
-      const size = 30;
+      const size = 34;
       const maxX = Math.max(margin, hostWindow.innerWidth - size - margin);
       const maxY = Math.max(margin, hostWindow.innerHeight - size - margin);
       const nextX = Math.min(maxX, Math.max(margin, Number(x)));
@@ -224,10 +224,10 @@
 
     const initialX = Number.isFinite(Number(settings.fabX)) && settings.fabX !== null
       ? Number(settings.fabX)
-      : hostWindow.innerWidth - 48;
+      : hostWindow.innerWidth - 52;
     const initialY = Number.isFinite(Number(settings.fabY)) && settings.fabY !== null
       ? Number(settings.fabY)
-      : hostWindow.innerHeight - 122;
+      : hostWindow.innerHeight - 126;
     placeFab(initialX, initialY, false);
 
     const onResize = () => placeFab(
