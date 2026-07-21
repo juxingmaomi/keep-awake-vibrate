@@ -2,7 +2,8 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.7';
+  const SCRIPT_VERSION = 'v0.1.8';
+  const BUTTON_NAME = '屏幕与震动';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -70,8 +71,6 @@
     if (!node) return;
     node.textContent = text;
     node.dataset.tone = tone;
-    const fab = hostDocument.querySelector(`#${ROOT_ID} .xw-kav-fab`);
-    if (fab) fab.dataset.awake = tone === 'ok' ? 'on' : 'off';
   }
 
   async function releaseWakeLock() {
@@ -144,12 +143,6 @@
       style.textContent = `
         #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { position: fixed; right: 10px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: rgba(30, 33, 36, .28); color: #df5961; cursor: pointer; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; z-index: 2; }
-        #${ROOT_ID} .xw-kav-phone-icon { position: relative; width: 18px; height: 27px; border: 2px solid currentColor; border-radius: 5px; background: rgba(20, 22, 24, .74); box-shadow: 0 3px 10px rgba(0, 0, 0, .3); transition: color .12s ease, box-shadow .12s ease; }
-        #${ROOT_ID} .xw-kav-phone-icon::after { content: ''; position: absolute; left: 50%; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; transform: translateX(-50%); }
-        #${ROOT_ID} .xw-kav-fab[data-awake='on'] { color: #42ce80; }
-        #${ROOT_ID} .xw-kav-fab[data-awake='on'] .xw-kav-phone-icon { box-shadow: 0 0 9px rgba(66, 206, 128, .38), 0 3px 10px rgba(0, 0, 0, .3); }
-        #${ROOT_ID} .xw-kav-fab:focus-visible { outline: 2px solid currentColor; outline-offset: -6px; }
         #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; z-index: 1; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
         #${ROOT_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
@@ -197,19 +190,18 @@
           <button class="xw-kav-action xw-kav-test" type="button">测试震动</button>
         </div>
       </section>
-      <button class="xw-kav-fab" type="button" title="屏幕与震动设置" aria-label="打开屏幕与震动设置"><span class="xw-kav-phone-icon" aria-hidden="true"></span></button>
     `;
-    hostDocument.body.appendChild(root);
+    const isMobile = hostWindow.matchMedia?.('(max-width: 820px)').matches;
+    const mountTarget = isMobile ? hostDocument.getElementById('movingDivs') || hostDocument.body : hostDocument.body;
+    mountTarget.appendChild(root);
 
     const panel = root.querySelector('.xw-kav-panel');
-    const fab = root.querySelector('.xw-kav-fab');
     const setPanelOpen = (open) => {
       settings.panelOpen = open;
       panel.hidden = !open;
       saveSettings();
     };
 
-    fab.addEventListener('click', () => setPanelOpen(panel.hidden));
     root.querySelector('.xw-kav-close').addEventListener('click', () => setPanelOpen(false));
     root.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
     root.querySelector('.xw-kav-test').addEventListener('click', () => vibrate([120, 70, 180], true));
@@ -230,6 +222,29 @@
 
     if (!settings.keepAwake) setStatus('常亮已关闭');
     else requestWakeLock(false);
+
+    return () => setPanelOpen(panel.hidden);
+  }
+
+  function bindSettingsButton(togglePanel) {
+    try {
+      if (typeof window.appendInexistentScriptButtons === 'function') {
+        window.appendInexistentScriptButtons([{ name: BUTTON_NAME, visible: true }]);
+      }
+      if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
+        const unsubscribe = window.eventOn(window.getButtonEvent(BUTTON_NAME), togglePanel);
+        if (typeof unsubscribe === 'function') cleanups.push(unsubscribe);
+        return true;
+      }
+      if (typeof window.eventOnButton === 'function') {
+        window.eventOnButton(BUTTON_NAME, togglePanel);
+        return true;
+      }
+    } catch (error) {
+      console.error('[屏幕与震动] 注册酒馆助手按钮失败', error);
+    }
+    toast('未找到酒馆助手按钮接口，请确认酒馆助手已启用。', 'warning');
+    return false;
   }
 
   function bindTavernEvents() {
@@ -272,6 +287,7 @@
   });
   addListener(window, 'pagehide', stop, { once: true });
 
-  render();
+  const togglePanel = render();
+  bindSettingsButton(togglePanel);
   bindTavernEvents();
 })();
