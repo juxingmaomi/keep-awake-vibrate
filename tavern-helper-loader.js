@@ -1,6 +1,6 @@
 (async () => {
   const REPO = 'juxingmaomi/keep-awake-vibrate';
-  const VERSION = 'v0.2.1';
+  const VERSION = 'v0.2.2';
   const URL = `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`;
 
   const loaderState = {
