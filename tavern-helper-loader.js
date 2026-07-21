@@ -2,9 +2,8 @@
   'use strict';
 
   const REPO = 'juxingmaomi/keep-awake-vibrate';
-  const BRANCH = 'main';
-  const CACHE_BUSTER = Date.now();
-  const URL = `https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/index.js?v=${CACHE_BUSTER}`;
+  const VERSION = 'v0.1.0';
+  const URL = `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`;
   const STATE_KEY = '__XW_KEEP_AWAKE_VIBRATE_LOADER__';
 
   const hostWindow = (() => {
@@ -16,7 +15,7 @@
 
   const state = {
     repo: REPO,
-    branch: BRANCH,
+    loadedTag: VERSION,
     url: URL,
     requestedAt: new Date().toISOString(),
   };
@@ -35,10 +34,10 @@
   try {
     await import(URL);
     state.loadedAt = new Date().toISOString();
-    popup('success', '屏幕常亮与生成震动已加载最新版');
+    popup('success', `屏幕常亮与生成震动已加载 ${VERSION}`);
   } catch (error) {
     state.error = String(error?.message || error);
     console.error('[屏幕与震动] 入口壳加载失败', error);
-    popup('error', '最新版加载失败，请检查网络后重载酒馆。');
+    popup('error', `屏幕常亮与生成震动 ${VERSION} 加载失败，请确认该版本已经发布。`);
   }
 })();
