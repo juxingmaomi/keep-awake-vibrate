@@ -2,11 +2,9 @@
   'use strict';
 
   const REPO = 'juxingmaomi/keep-awake-vibrate';
-  const VERSION = 'v0.1.13';
+  const VERSION = 'v0.1.14';
   const URL = `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`;
   const STATE_KEY = '__XW_KEEP_AWAKE_VIBRATE_LOADER__';
-  const CORE_KEY = '__xw_keep_awake_vibrate__';
-  const BUTTON_NAME = '屏幕与震动';
 
   const accessibleWindows = [];
   let currentWindow = window;
@@ -53,24 +51,6 @@
 
   try {
     await import(URL);
-    const core = accessibleWindows.map((target) => target[CORE_KEY]).find((instance) => instance?.togglePanel);
-    if (!core || typeof core.togglePanel !== 'function') {
-      throw new Error('核心脚本没有提供面板接口');
-    }
-    const buttonHandler = () => {
-      state.lastButtonClickAt = new Date().toISOString();
-      const activeCore = accessibleWindows.map((target) => target[CORE_KEY]).find((instance) => instance?.togglePanel);
-      activeCore?.togglePanel();
-    };
-    if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
-      window.eventOn(window.getButtonEvent(BUTTON_NAME), buttonHandler);
-      state.buttonRegistered = 'eventOn';
-    } else if (typeof window.eventOnButton === 'function') {
-      window.eventOnButton(BUTTON_NAME, buttonHandler);
-      state.buttonRegistered = 'eventOnButton';
-    } else {
-      throw new Error('当前入口壳没有获得 TavernHelper 按钮事件接口');
-    }
     state.loadedAt = new Date().toISOString();
     popup('success', `屏幕常亮与生成震动已加载 ${VERSION}`);
   } catch (error) {
