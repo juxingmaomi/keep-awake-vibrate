@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.0
+// version: v0.2.1
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.0';
+  const SCRIPT_VERSION = 'v0.2.1';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
   const LEGACY_INSTANCE_KEY = '__xw_keep_awake_vibrate__';
@@ -112,11 +112,13 @@
 
   function injectStyle() {
     const doc = getHostDocument();
-    if (!doc.head || doc.getElementById(STYLE_ID)) return;
+    const root = ensureWidget().shadowRoot;
+    if (root.querySelector(`#${STYLE_ID}`)) return;
     const style = doc.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      #${WIDGET_ID}, #${WIDGET_ID} * { box-sizing: border-box; letter-spacing: 0; }
+      :host { all: initial; }
+      *, *::before, *::after { box-sizing: border-box; letter-spacing: 0; }
       #${FLOATING_BUTTON_ID} {
         position: fixed; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 76px);
         z-index: 2147483647; display: inline-grid; place-items: center;
@@ -139,7 +141,7 @@
         border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px;
         background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.98));
         color: var(--SmartThemeBodyColor, #eee); box-shadow: 0 10px 28px rgba(0,0,0,.42);
-        backdrop-filter: blur(10px); font-family: inherit;
+        backdrop-filter: blur(10px); font-family: Arial, "Microsoft YaHei", sans-serif;
       }
       #${OVERLAY_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
       #${OVERLAY_ID} .xw-kav-title { margin: 0; font-size: 16px; line-height: 1.3; }
@@ -162,7 +164,7 @@
         #${OVERLAY_ID} .xw-kav-panel { width: 100%; max-height: min(72dvh, 520px); overflow-y: auto; }
       }
     `;
-    doc.head.appendChild(style);
+    root.appendChild(style);
   }
 
   function ensureWidget() {
@@ -173,13 +175,24 @@
       widget.id = WIDGET_ID;
       doc.body.appendChild(widget);
     }
+    widget.style.cssText = 'all:initial!important;position:fixed!important;left:0!important;top:0!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;z-index:2147483647!important;pointer-events:none!important;';
+    if (!widget.shadowRoot) widget.attachShadow({ mode: 'open' });
     widget.dataset.version = SCRIPT_VERSION;
     widget.dataset.instanceId = runtime.instanceId;
     return widget;
   }
 
+  function getUiRoot() {
+    const widget = getHostDocument().getElementById(WIDGET_ID);
+    return widget?.shadowRoot || null;
+  }
+
+  function findUiElement(id) {
+    return getUiRoot()?.querySelector(`#${id}`) || null;
+  }
+
   function updateFloatingButtonState() {
-    const button = getHostDocument().getElementById(FLOATING_BUTTON_ID);
+    const button = findUiElement(FLOATING_BUTTON_ID);
     if (!button) return;
     button.dataset.active = settings.keepAwake ? 'true' : 'false';
     button.title = settings.keepAwake ? '屏幕常亮已开启，点击打开设置' : '屏幕常亮已关闭，点击打开设置';
@@ -237,7 +250,8 @@
       if (!active) return;
       const dx = clientX - startX;
       const dy = clientY - startY;
-      if (Math.abs(dx) + Math.abs(dy) > 5) moved = true;
+      if (!moved && Math.hypot(dx, dy) < 12) return;
+      moved = true;
       const position = clampButtonToViewport(button, startLeft + dx, startTop + dy);
       button.style.left = `${position.left}px`;
       button.style.top = `${position.top}px`;
@@ -322,26 +336,27 @@
   function ensureFloatingButton() {
     const doc = getHostDocument();
     const widget = ensureWidget();
-    let button = doc.getElementById(FLOATING_BUTTON_ID);
+    const root = widget.shadowRoot;
+    let button = findUiElement(FLOATING_BUTTON_ID);
     if (!button) {
       button = doc.createElement('button');
       button.id = FLOATING_BUTTON_ID;
       button.type = 'button';
       button.innerHTML = '<span aria-hidden="true">☀</span>';
-      widget.appendChild(button);
-    } else if (button.parentNode !== widget) {
-      widget.appendChild(button);
+      root.appendChild(button);
+    } else if (button.parentNode !== root) {
+      root.appendChild(button);
     }
     button.dataset.version = SCRIPT_VERSION;
     updateFloatingButtonState();
     applySavedButtonPosition(button);
     bindFloatingButtonDrag(button);
-    button.style.display = doc.getElementById(OVERLAY_ID) ? 'none' : '';
+    button.style.display = findUiElement(OVERLAY_ID) ? 'none' : '';
     return button;
   }
 
   function setPanelStatus(text, tone = '') {
-    const status = getHostDocument().querySelector(`#${OVERLAY_ID} .xw-kav-status`);
+    const status = findUiElement(OVERLAY_ID)?.querySelector('.xw-kav-status');
     if (!status) return;
     status.textContent = text;
     status.dataset.tone = tone;
@@ -406,7 +421,7 @@
   }
 
   function closePanel() {
-    getHostDocument().getElementById(OVERLAY_ID)?.remove();
+    findUiElement(OVERLAY_ID)?.remove();
     ensureFloatingButton().style.display = '';
   }
 
@@ -414,7 +429,7 @@
     const doc = getHostDocument();
     if (!doc.body) return;
     injectStyle();
-    const existing = doc.getElementById(OVERLAY_ID);
+    const existing = findUiElement(OVERLAY_ID);
     if (existing) {
       existing.querySelector('.xw-kav-panel')?.focus();
       return;
@@ -468,8 +483,8 @@
         }
       });
     });
-    ensureWidget().appendChild(overlay);
-    const floatingButton = doc.getElementById(FLOATING_BUTTON_ID);
+    ensureWidget().shadowRoot.appendChild(overlay);
+    const floatingButton = findUiElement(FLOATING_BUTTON_ID);
     if (floatingButton) floatingButton.style.display = 'none';
     overlay.querySelector('.xw-kav-panel')?.focus();
     if (settings.keepAwake) requestWakeLock(false);
@@ -523,7 +538,7 @@
     if (!doc.body || !Observer) return;
     runtime.observer?.disconnect();
     runtime.observer = new Observer(() => {
-      if (runtime.stopping || doc.getElementById(FLOATING_BUTTON_ID)) return;
+      if (runtime.stopping || findUiElement(FLOATING_BUTTON_ID)) return;
       ensureFloatingButton();
     });
     runtime.observer.observe(doc.body, { childList: true, subtree: true });
@@ -546,7 +561,6 @@
     });
     const doc = getHostDocument();
     doc.getElementById(WIDGET_ID)?.remove();
-    doc.getElementById(STYLE_ID)?.remove();
     for (const target of getAccessibleWindows()) {
       try {
         if (target[INSTANCE_KEY]?.instanceId === runtime.instanceId) delete target[INSTANCE_KEY];
@@ -594,7 +608,6 @@
     });
     if (settings.keepAwake) requestWakeLock(false);
     console.info(`[${SCRIPT_NAME}] ${SCRIPT_VERSION} 初始化完成`, { helperButtonRegistered, generationEventsRegistered });
-    notify('success', `${SCRIPT_NAME} ${SCRIPT_VERSION} 已加载`);
   }
 
   addListener(window, 'pagehide', stopInstance, { once: true });
