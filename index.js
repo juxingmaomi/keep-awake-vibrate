@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.3
+// version: v0.2.4
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.3';
+  const SCRIPT_VERSION = 'v0.2.4';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
   const LEGACY_INSTANCE_KEY = '__xw_keep_awake_vibrate__';
@@ -190,7 +190,7 @@
   }
 
   function findPanel() {
-    return findPanelHost()?.shadowRoot?.querySelector(`#${OVERLAY_ID}`) || null;
+    return findPanelHost()?.querySelector('[data-xw-kav-panel-container]')?.shadowRoot?.querySelector(`#${OVERLAY_ID}`) || null;
   }
 
   function updateFloatingButtonState() {
@@ -353,7 +353,7 @@
     updateFloatingButtonState();
     applySavedButtonPosition(button);
     bindFloatingButtonDrag(button);
-    button.style.display = findPanelHost() ? 'none' : '';
+    button.style.display = '';
     return button;
   }
 
@@ -423,7 +423,11 @@
   }
 
   function closePanel() {
-    findPanelHost()?.remove();
+    const panelHost = findPanelHost();
+    if (panelHost) {
+      try { panelHost.close(); } catch (_) {}
+      panelHost.remove();
+    }
     ensureFloatingButton().style.display = '';
   }
 
@@ -442,12 +446,16 @@
       || getHostWindow().innerWidth
       || 360;
     const mobilePanelWidth = Math.max(240, Math.floor(visibleWidth) - 16);
-    const panelHost = doc.createElement('section');
+    const panelHost = doc.createElement('dialog');
     panelHost.id = PANEL_HOST_ID;
     panelHost.style.cssText = mobile
-      ? `all:initial!important;display:block!important;position:fixed!important;left:auto!important;right:8px!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 126px)!important;width:${mobilePanelWidth}px!important;min-width:0!important;max-width:${mobilePanelWidth}px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100dvh - 150px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;`
-      : 'all:initial!important;display:block!important;position:fixed!important;left:auto!important;right:14px!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 72px)!important;width:min(340px, calc(100vw - 24px))!important;min-width:0!important;max-width:340px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100vh - 96px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;';
-    const panelRoot = panelHost.attachShadow({ mode: 'open' });
+      ? `all:initial!important;display:block!important;position:fixed!important;inset:auto 8px calc(env(safe-area-inset-bottom, 0px) + 126px) auto!important;width:${mobilePanelWidth}px!important;min-width:0!important;max-width:${mobilePanelWidth}px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100dvh - 150px))!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483647!important;pointer-events:auto!important;transform:none!important;`
+      : 'all:initial!important;display:block!important;position:fixed!important;inset:auto 14px calc(env(safe-area-inset-bottom, 0px) + 72px) auto!important;width:min(340px, calc(100vw - 24px))!important;min-width:0!important;max-width:340px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100vh - 96px))!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483647!important;pointer-events:auto!important;transform:none!important;';
+    const panelContainer = doc.createElement('div');
+    panelContainer.dataset.xwKavPanelContainer = 'true';
+    panelContainer.style.cssText = 'all:initial!important;display:block!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;';
+    panelHost.appendChild(panelContainer);
+    const panelRoot = panelContainer.attachShadow({ mode: 'open' });
     const panelStyle = doc.createElement('style');
     panelStyle.textContent = getUiRoot()?.querySelector(`#${STYLE_ID}`)?.textContent || '';
     panelRoot.appendChild(panelStyle);
@@ -503,10 +511,13 @@
         }
       });
     });
-    const mountTarget = mobile ? doc.getElementById('movingDivs') || doc.body : doc.body;
-    mountTarget.appendChild(panelHost);
-    const floatingButton = findUiElement(FLOATING_BUTTON_ID);
-    if (floatingButton) floatingButton.style.display = 'none';
+    doc.body.appendChild(panelHost);
+    try {
+      panelHost.showModal();
+    } catch (error) {
+      panelHost.setAttribute('open', '');
+      console.warn(`[${SCRIPT_NAME}] showModal 不可用，已使用普通顶层面板`, error);
+    }
     panel.focus();
     if (settings.keepAwake) requestWakeLock(false);
     else setPanelStatus('常亮已关闭');
