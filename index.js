@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.1
+// version: v0.2.2
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.1';
+  const SCRIPT_VERSION = 'v0.2.2';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
   const LEGACY_INSTANCE_KEY = '__xw_keep_awake_vibrate__';
@@ -15,6 +15,7 @@
   const STYLE_ID = 'xw-kav-v2-style';
   const WIDGET_ID = 'xw-kav-v2-widget';
   const FLOATING_BUTTON_ID = 'xw-kav-v2-floating-button';
+  const PANEL_HOST_ID = 'xw-kav-v2-panel-host';
   const OVERLAY_ID = 'xw-kav-v2-overlay';
 
   const DEFAULT_SETTINGS = {
@@ -132,16 +133,11 @@
       #${FLOATING_BUTTON_ID}[data-active='false'] { background: #b64040; }
       #${FLOATING_BUTTON_ID} span { font-size: 18px; line-height: 1; pointer-events: none; }
       #${OVERLAY_ID} {
-        position: fixed; inset: 0; z-index: 2147483646;
-        display: flex; align-items: flex-end; justify-content: flex-end;
-        padding: 14px; background: rgba(0,0,0,.08); pointer-events: auto;
-      }
-      #${OVERLAY_ID} .xw-kav-panel {
-        width: min(340px, calc(100vw - 28px)); padding: 14px;
+        width: 100%; max-height: inherit; display: block; overflow-y: auto; padding: 14px;
         border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px;
         background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.98));
         color: var(--SmartThemeBodyColor, #eee); box-shadow: 0 10px 28px rgba(0,0,0,.42);
-        backdrop-filter: blur(10px); font-family: Arial, "Microsoft YaHei", sans-serif;
+        backdrop-filter: blur(10px); font-family: Arial, "Microsoft YaHei", sans-serif; pointer-events: auto;
       }
       #${OVERLAY_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
       #${OVERLAY_ID} .xw-kav-title { margin: 0; font-size: 16px; line-height: 1.3; }
@@ -160,8 +156,6 @@
       #${OVERLAY_ID} .xw-kav-action { min-height: 38px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 6px; background: rgba(127,127,127,.16); color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
       @media (max-width: 700px) {
         #${FLOATING_BUTTON_ID} { right: 10px; top: calc(env(safe-area-inset-top, 0px) + 62px); width: 38px; height: 38px; min-width: 38px; }
-        #${OVERLAY_ID} { align-items: flex-end; justify-content: center; padding: 8px 8px calc(env(safe-area-inset-bottom, 0px) + 92px); }
-        #${OVERLAY_ID} .xw-kav-panel { width: 100%; max-height: min(72dvh, 520px); overflow-y: auto; }
       }
     `;
     root.appendChild(style);
@@ -189,6 +183,14 @@
 
   function findUiElement(id) {
     return getUiRoot()?.querySelector(`#${id}`) || null;
+  }
+
+  function findPanelHost() {
+    return getHostDocument().getElementById(PANEL_HOST_ID);
+  }
+
+  function findPanel() {
+    return findPanelHost()?.shadowRoot?.querySelector(`#${OVERLAY_ID}`) || null;
   }
 
   function updateFloatingButtonState() {
@@ -351,12 +353,12 @@
     updateFloatingButtonState();
     applySavedButtonPosition(button);
     bindFloatingButtonDrag(button);
-    button.style.display = findUiElement(OVERLAY_ID) ? 'none' : '';
+    button.style.display = findPanelHost() ? 'none' : '';
     return button;
   }
 
   function setPanelStatus(text, tone = '') {
-    const status = findUiElement(OVERLAY_ID)?.querySelector('.xw-kav-status');
+    const status = findPanel()?.querySelector('.xw-kav-status');
     if (!status) return;
     status.textContent = text;
     status.dataset.tone = tone;
@@ -421,7 +423,7 @@
   }
 
   function closePanel() {
-    findUiElement(OVERLAY_ID)?.remove();
+    findPanelHost()?.remove();
     ensureFloatingButton().style.display = '';
   }
 
@@ -429,15 +431,32 @@
     const doc = getHostDocument();
     if (!doc.body) return;
     injectStyle();
-    const existing = findUiElement(OVERLAY_ID);
+    const existing = findPanelHost();
     if (existing) {
-      existing.querySelector('.xw-kav-panel')?.focus();
+      findPanel()?.focus();
       return;
     }
-    const overlay = doc.createElement('div');
-    overlay.id = OVERLAY_ID;
-    overlay.innerHTML = `
-      <section class="xw-kav-panel" tabindex="-1" aria-label="屏幕与震动设置">
+    const mobile = getHostWindow().matchMedia?.('(max-width: 700px)').matches;
+    const visibleWidth = getHostWindow().visualViewport?.width
+      || doc.documentElement.clientWidth
+      || getHostWindow().innerWidth
+      || 360;
+    const mobilePanelWidth = Math.max(240, Math.floor(visibleWidth) - 16);
+    const panelHost = doc.createElement('div');
+    panelHost.id = PANEL_HOST_ID;
+    panelHost.style.cssText = mobile
+      ? `all:initial!important;position:fixed!important;right:8px!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 126px)!important;width:${mobilePanelWidth}px!important;height:auto!important;max-height:min(520px, calc(100dvh - 150px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;`
+      : 'all:initial!important;position:fixed!important;right:14px!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 72px)!important;width:min(340px, calc(100vw - 24px))!important;height:auto!important;max-height:min(520px, calc(100vh - 96px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;';
+    const panelRoot = panelHost.attachShadow({ mode: 'open' });
+    const panelStyle = doc.createElement('style');
+    panelStyle.textContent = getUiRoot()?.querySelector(`#${STYLE_ID}`)?.textContent || '';
+    panelRoot.appendChild(panelStyle);
+    const panel = doc.createElement('section');
+    panel.id = OVERLAY_ID;
+    panel.className = 'xw-kav-panel';
+    panel.tabIndex = -1;
+    panel.setAttribute('aria-label', '屏幕与震动设置');
+    panel.innerHTML = `
         <div class="xw-kav-head">
           <h2 class="xw-kav-title">屏幕与震动<span class="xw-kav-version">${SCRIPT_VERSION}</span></h2>
           <button class="xw-kav-close" type="button" aria-label="关闭面板">&times;</button>
@@ -459,9 +478,10 @@
           <button class="xw-kav-action" data-action="retry-wake-lock" type="button">重试常亮</button>
           <button class="xw-kav-action" data-action="test-vibration" type="button">测试震动</button>
         </div>
-      </section>`;
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay || event.target.closest('.xw-kav-close')) {
+    `;
+    panelRoot.appendChild(panel);
+    panel.addEventListener('click', (event) => {
+      if (event.target.closest('.xw-kav-close')) {
         closePanel();
         return;
       }
@@ -469,7 +489,7 @@
       if (action === 'retry-wake-lock') requestWakeLock(true);
       if (action === 'test-vibration') vibrate([120, 70, 180], true);
     });
-    overlay.querySelectorAll('[data-setting]').forEach((input) => {
+    panel.querySelectorAll('[data-setting]').forEach((input) => {
       input.addEventListener('change', async () => {
         const key = input.dataset.setting;
         if (input.type === 'checkbox') settings[key] = input.checked;
@@ -483,10 +503,11 @@
         }
       });
     });
-    ensureWidget().shadowRoot.appendChild(overlay);
+    const mountTarget = mobile ? doc.getElementById('movingDivs') || doc.body : doc.body;
+    mountTarget.appendChild(panelHost);
     const floatingButton = findUiElement(FLOATING_BUTTON_ID);
     if (floatingButton) floatingButton.style.display = 'none';
-    overlay.querySelector('.xw-kav-panel')?.focus();
+    panel.focus();
     if (settings.keepAwake) requestWakeLock(false);
     else setPanelStatus('常亮已关闭');
   }
@@ -561,6 +582,7 @@
     });
     const doc = getHostDocument();
     doc.getElementById(WIDGET_ID)?.remove();
+    doc.getElementById(PANEL_HOST_ID)?.remove();
     for (const target of getAccessibleWindows()) {
       try {
         if (target[INSTANCE_KEY]?.instanceId === runtime.instanceId) delete target[INSTANCE_KEY];
