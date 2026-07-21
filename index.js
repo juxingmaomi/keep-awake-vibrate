@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.12';
+  const SCRIPT_VERSION = 'v0.1.13';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -213,9 +213,7 @@
           <button class="xw-kav-action xw-kav-test" type="button">测试震动</button>
         </div>
     `;
-    const isMobile = hostWindow.matchMedia?.('(max-width: 820px)').matches;
-    const mountTarget = isMobile ? hostDocument.getElementById('movingDivs') || hostDocument.body : hostDocument.body;
-    mountTarget.appendChild(panel);
+    hostDocument.body.appendChild(panel);
 
     panel.querySelector('.xw-kav-close').addEventListener('click', () => panel.remove());
     panel.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
