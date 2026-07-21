@@ -2,6 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
+  const SCRIPT_VERSION = 'v0.1.0';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -176,7 +177,7 @@
     root.innerHTML = `
       <section class="xw-kav-panel" ${settings.panelOpen ? '' : 'hidden'} aria-label="屏幕与震动设置">
         <div class="xw-kav-head">
-          <h2 class="xw-kav-title">屏幕与震动</h2>
+          <h2 class="xw-kav-title">屏幕与震动 <small style="font-size:11px;opacity:.62">${SCRIPT_VERSION}</small></h2>
           <button class="xw-kav-close" type="button" title="关闭面板" aria-label="关闭面板">&times;</button>
         </div>
         <label class="xw-kav-row">
