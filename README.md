@@ -16,10 +16,16 @@
 
 在 TavernHelper 脚本库中新建或导入脚本，使用 `tavern-helper-loader.js` 的内容。
 
-入口壳每次运行时加载 `main` 分支上的最新版：
+入口壳使用固定版本号。发布新版后，只需在入口壳中修改 `VERSION`，酒馆助手保存脚本时便会立即加载对应版本：
+
+```js
+const VERSION = 'v0.1.0';
+```
+
+固定版本 CDN 地址：
 
 ```text
-https://cdn.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@main/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.1.0/index.js
 ```
 
 ## 浏览器限制
