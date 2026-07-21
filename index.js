@@ -1,13 +1,14 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.4
+// version: v0.2.5
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.4';
+  const SCRIPT_VERSION = 'v0.2.5';
+  const REPOSITORY = 'juxingmaomi/keep-awake-vibrate';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
   const LEGACY_INSTANCE_KEY = '__xw_keep_awake_vibrate__';
@@ -28,6 +29,8 @@
   const runtime = {
     instanceId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
     wakeLock: null,
+    noSleepVideo: null,
+    noSleepEnabled: false,
     generationActive: false,
     stopping: false,
     observer: null,
@@ -364,12 +367,69 @@
     status.dataset.tone = tone;
   }
 
+  // Video fallback adapted from NoSleep.js v0.12.0 by Rich Tibbett (MIT).
+  function createNoSleepVideo() {
+    if (runtime.noSleepVideo) return runtime.noSleepVideo;
+    const doc = getHostDocument();
+    const video = doc.createElement('video');
+    video.title = 'No Sleep';
+    video.preload = 'auto';
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    const assetBase = `https://gcore.jsdelivr.net/gh/${REPOSITORY}@${SCRIPT_VERSION}/assets`;
+    for (const type of ['webm', 'mp4']) {
+      const source = doc.createElement('source');
+      source.src = `${assetBase}/nosleep.${type}`;
+      source.type = `video/${type}`;
+      video.appendChild(source);
+    }
+    video.addEventListener('loadedmetadata', () => {
+      if (video.duration <= 1) {
+        video.loop = true;
+        return;
+      }
+      video.addEventListener('timeupdate', () => {
+        if (video.currentTime > 0.5) video.currentTime = Math.random();
+      });
+    }, { once: true });
+    runtime.noSleepVideo = video;
+    return video;
+  }
+
+  async function enableNoSleepFallback(showError = false) {
+    if (runtime.noSleepEnabled && runtime.noSleepVideo && !runtime.noSleepVideo.paused) {
+      setPanelStatus('兼容常亮中', 'ok');
+      return true;
+    }
+    try {
+      const video = createNoSleepVideo();
+      setPanelStatus('正在启动兼容常亮...', 'wait');
+      await Promise.resolve(video.play());
+      runtime.noSleepEnabled = true;
+      setPanelStatus('兼容常亮中', 'ok');
+      return true;
+    } catch (error) {
+      runtime.noSleepEnabled = false;
+      setPanelStatus('兼容常亮未启动，请点重试', 'error');
+      if (showError) notify('warning', `无法启动兼容常亮：${error?.message || '浏览器拒绝了视频播放'}`);
+      return false;
+    }
+  }
+
+  function disableNoSleepFallback() {
+    if (runtime.noSleepVideo) {
+      try { runtime.noSleepVideo.pause(); } catch (_) {}
+    }
+    runtime.noSleepEnabled = false;
+  }
+
   async function releaseWakeLock() {
     const lock = runtime.wakeLock;
     runtime.wakeLock = null;
     if (lock) {
       try { await lock.release(); } catch (_) {}
     }
+    disableNoSleepFallback();
     if (!settings.keepAwake) setPanelStatus('常亮已关闭');
   }
 
@@ -383,9 +443,7 @@
     }
     const wakeLockApi = host.navigator?.wakeLock || window.navigator?.wakeLock;
     if (!wakeLockApi?.request) {
-      setPanelStatus('当前浏览器不支持屏幕常亮', 'error');
-      if (showError) notify('warning', '当前浏览器不支持网页屏幕常亮。');
-      return false;
+      return enableNoSleepFallback(showError);
     }
     try {
       if (runtime.wakeLock && !runtime.wakeLock.released) {
@@ -393,6 +451,7 @@
         return true;
       }
       runtime.wakeLock = await wakeLockApi.request('screen');
+      disableNoSleepFallback();
       runtime.wakeLock.addEventListener('release', () => {
         runtime.wakeLock = null;
         if (settings.keepAwake && doc.visibilityState === 'visible') {
@@ -402,9 +461,8 @@
       setPanelStatus('屏幕常亮中', 'ok');
       return true;
     } catch (error) {
-      setPanelStatus('常亮请求失败，点击重试', 'error');
-      if (showError) notify('warning', `无法开启常亮：${error?.message || '浏览器拒绝了请求'}`);
-      return false;
+      console.warn(`[${SCRIPT_NAME}] 原生常亮不可用，切换到兼容模式`, error);
+      return enableNoSleepFallback(showError);
     }
   }
 
@@ -636,6 +694,10 @@
     installFloatingButtonGuard();
     const helperButtonRegistered = bindTavernHelperButton();
     const generationEventsRegistered = bindGenerationEvents();
+    addListener(doc, 'pointerdown', () => {
+      const wakeLockApi = getHostWindow().navigator?.wakeLock || window.navigator?.wakeLock;
+      if (settings.keepAwake && !wakeLockApi?.request && !runtime.noSleepEnabled) requestWakeLock(false);
+    }, { capture: true, passive: true });
     addListener(doc, 'visibilitychange', () => {
       if (settings.keepAwake && doc.visibilityState === 'visible') requestWakeLock(false);
     });

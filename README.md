@@ -4,7 +4,7 @@
 
 ## 功能
 
-- 酒馆页面位于前台时申请 Screen Wake Lock，绕过手机系统的普通熄屏时限。
+- 酒馆页面位于前台时优先申请 Screen Wake Lock；局域网 HTTP 无法使用原生接口时自动启用兼容视频保活。
 - 正常生成结束后触发手机震动，手动停止不震动。
 - 红色小按钮表示常亮关闭，绿色表示常亮开启。
 - 小按钮可拖动，手机与电脑都可直接点击打开设置面板。
@@ -18,18 +18,19 @@
 手动更新只需修改入口壳中的版本号：
 
 ```js
-const VERSION = 'v0.2.4';
+const VERSION = 'v0.2.5';
 ```
 
 固定版本 CDN 地址：
 
 ```text
-https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.2.4/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.2.5/index.js
 ```
 
 ## 浏览器限制
 
-- Wake Lock 需要安全上下文。局域网 HTTP 页面是否可用取决于浏览器策略。
-- Edge/Chromium 在支持 Wake Lock 的环境中，常亮开启后不会受系统“最长 10 分钟”网页熄屏计时限制。
+- Wake Lock 需要安全上下文；局域网 HTTP 下脚本会改用 NoSleep.js 风格的短视频兼容保活。
+- Edge/Chromium 常亮成功开启后，通常不会受系统“最长 10 分钟”网页熄屏计时限制。
 - 页面切到后台、浏览器被系统冻结或省电策略强制介入时，锁可能暂时释放；返回前台后脚本会重新申请。
+- 兼容保活可能受手机厂商的激进省电策略影响，可靠性不完全等同于原生 Wake Lock。
 - 网页震动是否生效取决于手机硬件、浏览器权限和系统设置。
