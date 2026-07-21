@@ -18,13 +18,13 @@
 手动更新只需修改入口壳中的版本号：
 
 ```js
-const VERSION = 'v0.2.2';
+const VERSION = 'v0.2.3';
 ```
 
 固定版本 CDN 地址：
 
 ```text
-https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.2.2/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.2.3/index.js
 ```
 
 ## 浏览器限制
