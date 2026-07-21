@@ -21,6 +21,8 @@
     vibrateOnComplete: true,
     vibrationMs: 250,
     panelOpen: false,
+    fabX: null,
+    fabY: null,
   };
 
   let settings = loadSettings();
@@ -69,6 +71,8 @@
     if (!node) return;
     node.textContent = text;
     node.dataset.tone = tone;
+    const fab = hostDocument.querySelector(`#${ROOT_ID} .xw-kav-fab`);
+    if (fab) fab.dataset.awake = tone === 'ok' ? 'on' : 'off';
   }
 
   async function releaseWakeLock() {
@@ -139,10 +143,13 @@
       const style = hostDocument.createElement('style');
       style.id = STYLE_ID;
       style.textContent = `
-        #${ROOT_ID} { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 100000; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
+        #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { width: 48px; height: 48px; margin-left: auto; display: grid; place-items: center; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 50%; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.94)); color: inherit; box-shadow: 0 6px 20px rgba(0,0,0,.3); cursor: pointer; font-size: 20px; }
-        #${ROOT_ID} .xw-kav-panel { width: min(340px, calc(100vw - 28px)); margin-bottom: 10px; padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); }
+        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(20, 24, 28, .8); border-radius: 50%; background: radial-gradient(circle at 38% 30%, #687078 0%, #41474d 52%, #25292d 100%); color: transparent; box-shadow: 0 5px 13px rgba(0, 0, 0, .34); cursor: grab; font-size: 0; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+        #${ROOT_ID} .xw-kav-fab::after { content: ''; width: 18px; height: 18px; border-radius: 50%; background: #e24d55; box-shadow: 0 0 8px rgba(226, 77, 85, .58), inset 0 1px 2px rgba(255, 255, 255, .42); transition: background .18s ease, box-shadow .18s ease; }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on']::after { background: #3ddc84; box-shadow: 0 0 9px rgba(61, 220, 132, .68), inset 0 1px 2px rgba(255, 255, 255, .5); }
+        #${ROOT_ID} .xw-kav-fab:active { cursor: grabbing; }
+        #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
         #${ROOT_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
         #${ROOT_ID} .xw-kav-title { margin: 0; font-size: 16px; line-height: 1.3; }
@@ -158,7 +165,7 @@
         #${ROOT_ID} .xw-kav-status[data-tone='error'] { color: #ff8585; }
         #${ROOT_ID} .xw-kav-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         #${ROOT_ID} .xw-kav-action { min-height: 38px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 6px; background: rgba(127,127,127,.16); color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
-        @media (max-width: 520px) { #${ROOT_ID} { right: 10px; bottom: calc(82px + env(safe-area-inset-bottom)); } #${ROOT_ID} .xw-kav-panel { width: calc(100vw - 20px); } }
+        @media (max-width: 520px) { #${ROOT_ID} .xw-kav-panel { right: 10px; bottom: calc(82px + env(safe-area-inset-bottom)); width: calc(100vw - 20px); } }
       `;
       hostDocument.head.appendChild(style);
     }
@@ -194,13 +201,82 @@
     hostDocument.body.appendChild(root);
 
     const panel = root.querySelector('.xw-kav-panel');
+    const fab = root.querySelector('.xw-kav-fab');
+    let suppressFabClick = false;
+
+    const placeFab = (x, y, persist = false) => {
+      const margin = 6;
+      const size = 38;
+      const maxX = Math.max(margin, hostWindow.innerWidth - size - margin);
+      const maxY = Math.max(margin, hostWindow.innerHeight - size - margin);
+      const nextX = Math.min(maxX, Math.max(margin, Number(x)));
+      const nextY = Math.min(maxY, Math.max(margin, Number(y)));
+      fab.style.left = `${nextX}px`;
+      fab.style.top = `${nextY}px`;
+      if (persist) {
+        settings.fabX = nextX;
+        settings.fabY = nextY;
+        saveSettings();
+      }
+    };
+
+    const initialX = Number.isFinite(Number(settings.fabX)) && settings.fabX !== null
+      ? Number(settings.fabX)
+      : hostWindow.innerWidth - 52;
+    const initialY = Number.isFinite(Number(settings.fabY)) && settings.fabY !== null
+      ? Number(settings.fabY)
+      : hostWindow.innerHeight - 136;
+    placeFab(initialX, initialY, false);
+
+    const onResize = () => placeFab(
+      Number.parseFloat(fab.style.left) || initialX,
+      Number.parseFloat(fab.style.top) || initialY,
+      true,
+    );
+    addListener(hostWindow, 'resize', onResize);
+
+    fab.addEventListener('pointerdown', (event) => {
+      if (event.button != null && event.button !== 0) return;
+      const rect = fab.getBoundingClientRect();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const originX = rect.left;
+      const originY = rect.top;
+      let moved = false;
+      fab.setPointerCapture?.(event.pointerId);
+
+      const onMove = (moveEvent) => {
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        if (Math.hypot(dx, dy) > 6) moved = true;
+        if (moved) {
+          moveEvent.preventDefault();
+          placeFab(originX + dx, originY + dy, false);
+        }
+      };
+      const onEnd = () => {
+        fab.removeEventListener('pointermove', onMove);
+        fab.removeEventListener('pointerup', onEnd);
+        fab.removeEventListener('pointercancel', onEnd);
+        if (moved) {
+          placeFab(Number.parseFloat(fab.style.left), Number.parseFloat(fab.style.top), true);
+          suppressFabClick = true;
+          hostWindow.setTimeout(() => { suppressFabClick = false; }, 0);
+        }
+      };
+      fab.addEventListener('pointermove', onMove);
+      fab.addEventListener('pointerup', onEnd);
+      fab.addEventListener('pointercancel', onEnd);
+    });
     const setPanelOpen = (open) => {
       settings.panelOpen = open;
       panel.hidden = !open;
       saveSettings();
     };
 
-    root.querySelector('.xw-kav-fab').addEventListener('click', () => setPanelOpen(panel.hidden));
+    fab.addEventListener('click', () => {
+      if (!suppressFabClick) setPanelOpen(panel.hidden);
+    });
     root.querySelector('.xw-kav-close').addEventListener('click', () => setPanelOpen(false));
     root.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
     root.querySelector('.xw-kav-test').addEventListener('click', () => vibrate([120, 70, 180], true));
