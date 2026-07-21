@@ -2,8 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.9';
-  const BUTTON_NAME = '屏幕与震动';
+  const SCRIPT_VERSION = 'v0.1.10';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -225,24 +224,6 @@
     renderPanel();
   }
 
-  function bindSettingsButton(togglePanel) {
-    try {
-      if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
-        const unsubscribe = window.eventOn(window.getButtonEvent(BUTTON_NAME), togglePanel);
-        if (typeof unsubscribe === 'function') cleanups.push(unsubscribe);
-        return true;
-      }
-      if (typeof window.eventOnButton === 'function') {
-        window.eventOnButton(BUTTON_NAME, togglePanel);
-        return true;
-      }
-    } catch (error) {
-      console.error('[屏幕与震动] 注册酒馆助手按钮失败', error);
-    }
-    toast('未找到酒馆助手按钮接口，请确认酒馆助手已启用。', 'warning');
-    return false;
-  }
-
   function bindTavernEvents() {
     const eventOn = getApi('eventOn');
     const tavernEvents = getApi('tavern_events');
@@ -277,13 +258,12 @@
     if (hostWindow[INSTANCE_KEY]?.stop === stop) delete hostWindow[INSTANCE_KEY];
   }
 
-  hostWindow[INSTANCE_KEY] = { stop };
+  hostWindow[INSTANCE_KEY] = { stop, togglePanel, version: SCRIPT_VERSION };
   addListener(hostDocument, 'visibilitychange', () => {
     if (settings.keepAwake && hostDocument.visibilityState === 'visible') requestWakeLock(false);
   });
   addListener(window, 'pagehide', stop, { once: true });
 
-  bindSettingsButton(togglePanel);
   bindTavernEvents();
   if (settings.keepAwake) requestWakeLock(false);
 })();
