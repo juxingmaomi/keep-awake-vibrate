@@ -1,43 +1,35 @@
 # 屏幕常亮与生成震动
 
-适用于 SillyTavern + TavernHelper 的手机辅助脚本。
+适用于 SillyTavern + TavernHelper 的轻量脚本。
 
 ## 功能
 
-- 酒馆页面处于前台时保持屏幕常亮。
-- 正常生成完毕后触发手机震动，手动停止不震动。
-- 常亮和震动可以独立开关。
-- 使用 TavernHelper 官方“屏幕与震动”脚本按钮打开设置面板。
-- 官方按钮事件由入口壳直接注册，远程核心只负责面板和功能。
-- 可调整震动时长，并提供常亮重试和震动测试。
+- 酒馆页面位于前台时申请 Screen Wake Lock，绕过手机系统的普通熄屏时限。
+- 正常生成结束后触发手机震动，手动停止不震动。
+- 红色小按钮表示常亮关闭，绿色表示常亮开启。
+- 小按钮可拖动，手机与电脑都可直接点击打开设置面板。
+- 同时保留 TavernHelper 的“屏幕与震动”备用按钮。
 - 设置保存在当前浏览器的 `localStorage` 中。
-- 不轮询、不扫描聊天消息、不修改聊天文件和世界书。
 
-## 安装
+## 安装与更新
 
-在 TavernHelper 脚本库中新建或导入脚本，使用 `tavern-helper-loader.js` 的内容。
+导入 `屏幕常亮与生成震动-入口壳.json`，或将 `tavern-helper-loader.js` 放进 TavernHelper 脚本。
 
-入口壳使用固定版本号。发布新版后，只需在入口壳中修改 `VERSION`，酒馆助手保存脚本时便会立即加载对应版本：
+手动更新只需修改入口壳中的版本号：
 
 ```js
-const VERSION = 'v0.1.16';
+const VERSION = 'v0.2.0';
 ```
 
 固定版本 CDN 地址：
 
 ```text
-https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.1.16/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.2.0/index.js
 ```
 
 ## 浏览器限制
 
-- Android Edge/Chrome 通常同时支持 Wake Lock 和网页震动。
-- Wake Lock 通常要求 HTTPS 或浏览器认可的安全环境。
-- iPhone/iPad 浏览器通常不支持网页震动。
-- 系统省电模式、后台标签页或浏览器权限可能临时释放 Wake Lock；页面回到前台后脚本会自动重试。
-
-## 文件
-
-- `index.js`：插件核心。
-- `tavern-helper-loader.js`：建议导入 TavernHelper 的自动更新入口壳。
-- `屏幕常亮与生成震动-入口壳.json`：可直接导入 TavernHelper 的成品。
+- Wake Lock 需要安全上下文。局域网 HTTP 页面是否可用取决于浏览器策略。
+- Edge/Chromium 在支持 Wake Lock 的环境中，常亮开启后不会受系统“最长 10 分钟”网页熄屏计时限制。
+- 页面切到后台、浏览器被系统冻结或省电策略强制介入时，锁可能暂时释放；返回前台后脚本会重新申请。
+- 网页震动是否生效取决于手机硬件、浏览器权限和系统设置。
