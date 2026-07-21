@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.6
+// version: v0.2.7
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.6';
+  const SCRIPT_VERSION = 'v0.2.7';
   const REPOSITORY = 'juxingmaomi/keep-awake-vibrate';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
@@ -18,7 +18,6 @@
   const FLOATING_BUTTON_ID = 'xw-kav-v2-floating-button';
   const PANEL_HOST_ID = 'xw-kav-v2-panel-host';
   const OVERLAY_ID = 'xw-kav-v2-overlay';
-  const BACKDROP_STYLE_ID = 'xw-kav-v2-backdrop-style';
 
   const DEFAULT_SETTINGS = {
     keepAwake: false,
@@ -178,16 +177,6 @@
     widget.dataset.version = SCRIPT_VERSION;
     widget.dataset.instanceId = runtime.instanceId;
     return widget;
-  }
-
-  function injectBackdropStyle() {
-    const doc = getHostDocument();
-    if (doc.getElementById(BACKDROP_STYLE_ID)) return;
-    const style = doc.createElement('style');
-    style.id = BACKDROP_STYLE_ID;
-    style.textContent = `#${PANEL_HOST_ID}::backdrop { background: transparent !important; }`;
-    doc.head.appendChild(style);
-    addCleanup(() => style.remove());
   }
 
   function getUiRoot() {
@@ -494,7 +483,7 @@
   function closePanel() {
     const panelHost = findPanelHost();
     if (panelHost) {
-      try { panelHost.close(); } catch (_) {}
+      try { panelHost.hidePopover?.(); } catch (_) {}
       panelHost.remove();
     }
     ensureFloatingButton().style.display = '';
@@ -515,8 +504,12 @@
       || getHostWindow().innerWidth
       || 360;
     const mobilePanelWidth = Math.max(240, Math.floor(visibleWidth) - 16);
-    const panelHost = doc.createElement('dialog');
+    const panelHost = doc.createElement('div');
     panelHost.id = PANEL_HOST_ID;
+    panelHost.setAttribute('popover', 'manual');
+    panelHost.setAttribute('role', 'dialog');
+    panelHost.setAttribute('aria-modal', 'false');
+    panelHost.setAttribute('aria-label', '屏幕与震动设置');
     panelHost.style.cssText = mobile
       ? `all:initial!important;display:block!important;position:fixed!important;inset:auto 8px calc(env(safe-area-inset-bottom, 0px) + 126px) auto!important;width:${mobilePanelWidth}px!important;min-width:0!important;max-width:${mobilePanelWidth}px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100dvh - 150px))!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483647!important;pointer-events:auto!important;transform:none!important;`
       : 'all:initial!important;display:block!important;position:fixed!important;inset:auto 14px calc(env(safe-area-inset-bottom, 0px) + 72px) auto!important;width:min(340px, calc(100vw - 24px))!important;min-width:0!important;max-width:340px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100vh - 96px))!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483647!important;pointer-events:auto!important;transform:none!important;';
@@ -581,11 +574,10 @@
       });
     });
     doc.body.appendChild(panelHost);
-    try {
-      panelHost.showModal();
-    } catch (error) {
-      panelHost.setAttribute('open', '');
-      console.warn(`[${SCRIPT_NAME}] showModal 不可用，已使用普通顶层面板`, error);
+    if (typeof panelHost.showPopover === 'function') {
+      try { panelHost.showPopover(); } catch (error) { console.warn(`[${SCRIPT_NAME}] 顶层浮层打开失败`, error); }
+    } else {
+      panelHost.removeAttribute('popover');
     }
     panel.focus();
     if (settings.keepAwake) requestWakeLock(false);
@@ -701,7 +693,6 @@
     }
     claimGlobalInstance();
     injectStyle();
-    injectBackdropStyle();
     ensureFloatingButton();
     installFloatingButtonGuard();
     const helperButtonRegistered = bindTavernHelperButton();
