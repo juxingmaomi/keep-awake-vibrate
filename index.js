@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.14';
+  const SCRIPT_VERSION = 'v0.1.15';
   const BUTTON_NAME = '屏幕与震动';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
