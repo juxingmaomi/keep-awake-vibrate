@@ -145,9 +145,10 @@
       style.textContent = `
         #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(20, 24, 28, .8); border-radius: 50%; background: radial-gradient(circle at 38% 30%, #687078 0%, #41474d 52%, #25292d 100%); color: transparent; box-shadow: 0 5px 13px rgba(0, 0, 0, .34); cursor: grab; font-size: 0; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
-        #${ROOT_ID} .xw-kav-fab::after { content: ''; width: 18px; height: 18px; border-radius: 50%; background: #e24d55; box-shadow: 0 0 8px rgba(226, 77, 85, .58), inset 0 1px 2px rgba(255, 255, 255, .42); transition: background .18s ease, box-shadow .18s ease; }
-        #${ROOT_ID} .xw-kav-fab[data-awake='on']::after { background: #3ddc84; box-shadow: 0 0 9px rgba(61, 220, 132, .68), inset 0 1px 2px rgba(255, 255, 255, .5); }
+        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 1px solid rgba(185, 192, 199, .5); border-radius: 50%; background: rgba(38, 35, 31, .82); color: transparent; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); cursor: grab; font-size: 0; opacity: .82; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity .12s ease, box-shadow .12s ease, transform .12s ease; }
+        #${ROOT_ID} .xw-kav-fab::after { content: ''; width: 16px; height: 16px; border-radius: 50%; background: #e24d55; box-shadow: 0 0 8px rgba(226, 77, 85, .62); transition: background .12s ease, box-shadow .12s ease; }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on'] { opacity: .98; box-shadow: 0 0 12px rgba(61, 220, 132, .32), 0 4px 14px rgba(0, 0, 0, .35); }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on']::after { background: #3ddc84; box-shadow: 0 0 9px rgba(61, 220, 132, .72); }
         #${ROOT_ID} .xw-kav-fab:active { cursor: grabbing; }
         #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
@@ -206,7 +207,7 @@
 
     const placeFab = (x, y, persist = false) => {
       const margin = 6;
-      const size = 38;
+      const size = 34;
       const maxX = Math.max(margin, hostWindow.innerWidth - size - margin);
       const maxY = Math.max(margin, hostWindow.innerHeight - size - margin);
       const nextX = Math.min(maxX, Math.max(margin, Number(x)));
@@ -225,7 +226,7 @@
       : hostWindow.innerWidth - 52;
     const initialY = Number.isFinite(Number(settings.fabY)) && settings.fabY !== null
       ? Number(settings.fabY)
-      : hostWindow.innerHeight - 136;
+      : hostWindow.innerHeight - 126;
     placeFab(initialX, initialY, false);
 
     const onResize = () => placeFab(
@@ -248,7 +249,7 @@
       const onMove = (moveEvent) => {
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
-        if (Math.hypot(dx, dy) > 6) moved = true;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
         if (moved) {
           moveEvent.preventDefault();
           placeFab(originX + dx, originY + dy, false);
