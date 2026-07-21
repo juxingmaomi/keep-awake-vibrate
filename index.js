@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.5
+// version: v0.2.6
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.5';
+  const SCRIPT_VERSION = 'v0.2.6';
   const REPOSITORY = 'juxingmaomi/keep-awake-vibrate';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
@@ -18,6 +18,7 @@
   const FLOATING_BUTTON_ID = 'xw-kav-v2-floating-button';
   const PANEL_HOST_ID = 'xw-kav-v2-panel-host';
   const OVERLAY_ID = 'xw-kav-v2-overlay';
+  const BACKDROP_STYLE_ID = 'xw-kav-v2-backdrop-style';
 
   const DEFAULT_SETTINGS = {
     keepAwake: false,
@@ -139,8 +140,8 @@
         width: 100%; max-height: inherit; display: block; overflow-y: auto; padding: 14px;
         border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px;
         background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.98));
-        color: var(--SmartThemeBodyColor, #eee); box-shadow: 0 10px 28px rgba(0,0,0,.42);
-        backdrop-filter: blur(10px); font-family: Arial, "Microsoft YaHei", sans-serif; pointer-events: auto;
+        color: var(--SmartThemeBodyColor, #eee); box-shadow: 0 4px 14px rgba(0,0,0,.30); outline: none;
+        backdrop-filter: none; font-family: Arial, "Microsoft YaHei", sans-serif; pointer-events: auto;
       }
       #${OVERLAY_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
       #${OVERLAY_ID} .xw-kav-title { margin: 0; font-size: 16px; line-height: 1.3; }
@@ -177,6 +178,16 @@
     widget.dataset.version = SCRIPT_VERSION;
     widget.dataset.instanceId = runtime.instanceId;
     return widget;
+  }
+
+  function injectBackdropStyle() {
+    const doc = getHostDocument();
+    if (doc.getElementById(BACKDROP_STYLE_ID)) return;
+    const style = doc.createElement('style');
+    style.id = BACKDROP_STYLE_ID;
+    style.textContent = `#${PANEL_HOST_ID}::backdrop { background: transparent !important; }`;
+    doc.head.appendChild(style);
+    addCleanup(() => style.remove());
   }
 
   function getUiRoot() {
@@ -690,6 +701,7 @@
     }
     claimGlobalInstance();
     injectStyle();
+    injectBackdropStyle();
     ensureFloatingButton();
     installFloatingButtonGuard();
     const helperButtonRegistered = bindTavernHelperButton();
