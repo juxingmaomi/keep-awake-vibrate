@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.15';
+  const SCRIPT_VERSION = 'v0.1.16';
   const BUTTON_NAME = '屏幕与震动';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
@@ -57,6 +57,7 @@
   let disposed = false;
   let lastPanelOpenAt = 0;
   const cleanups = [];
+  const boundButtonEvents = new Set();
 
   function loadSettings() {
     try {
@@ -257,23 +258,42 @@
     openPanel();
   }
 
+  const tavernHelperButtonHandler = () => openPanel();
+
+  function bindButtonEvent(eventId) {
+    if (!eventId || boundButtonEvents.has(eventId) || typeof window.eventOn !== 'function') return false;
+    const subscription = window.eventOn(eventId, tavernHelperButtonHandler);
+    boundButtonEvents.add(eventId);
+    if (typeof subscription?.stop === 'function') cleanups.push(() => subscription.stop());
+    return true;
+  }
+
   function bindTavernHelperButton() {
-    const handler = () => openPanel();
+    let registered = boundButtonEvents.size > 0;
     try {
       if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
-        const subscription = window.eventOn(window.getButtonEvent(BUTTON_NAME), handler);
-        if (typeof subscription?.stop === 'function') cleanups.push(() => subscription.stop());
-        return true;
+        registered = bindButtonEvent(window.getButtonEvent(BUTTON_NAME)) || registered;
       }
-      if (typeof window.eventOnButton === 'function') {
-        window.eventOnButton(BUTTON_NAME, handler);
-        return true;
+      if (typeof window.getAllEnabledScriptButtons === 'function' && typeof window.eventOn === 'function') {
+        const buttonMap = window.getAllEnabledScriptButtons() || {};
+        for (const buttons of Object.values(buttonMap)) {
+          if (!Array.isArray(buttons)) continue;
+          for (const button of buttons) {
+            if (button?.button_name === BUTTON_NAME) {
+              registered = bindButtonEvent(button.button_id) || registered;
+            }
+          }
+        }
+      }
+      if (!registered && typeof window.eventOnButton === 'function') {
+        window.eventOnButton(BUTTON_NAME, tavernHelperButtonHandler);
+        registered = true;
       }
     } catch (error) {
       console.warn('[屏幕与震动] 注册 TavernHelper 按钮失败', error);
     }
-    console.error('[屏幕与震动] 未找到 TavernHelper 脚本按钮事件接口');
-    return false;
+    if (!registered) console.error('[屏幕与震动] 未找到 TavernHelper 脚本按钮事件接口');
+    return registered;
   }
 
   function bindTavernEvents() {
@@ -317,7 +337,7 @@
     }
   }
 
-  const publicInstance = { stop, openPanel, togglePanel, version: SCRIPT_VERSION };
+  const publicInstance = { stop, openPanel, togglePanel, boundButtonEvents, version: SCRIPT_VERSION };
   for (const target of runtimeWindows) target[INSTANCE_KEY] = publicInstance;
   addListener(hostDocument, 'visibilitychange', () => {
     if (settings.keepAwake && hostDocument.visibilityState === 'visible') requestWakeLock(false);
@@ -325,6 +345,10 @@
   addListener(window, 'pagehide', stop, { once: true });
 
   bindTavernHelperButton();
+  [300, 1200, 3000].forEach((delay) => {
+    const timer = window.setTimeout(bindTavernHelperButton, delay);
+    cleanups.push(() => window.clearTimeout(timer));
+  });
   bindTavernEvents();
   if (settings.keepAwake) requestWakeLock(false);
 })();
