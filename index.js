@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.2
+// version: v0.2.3
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.2';
+  const SCRIPT_VERSION = 'v0.2.3';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
   const LEGACY_INSTANCE_KEY = '__xw_keep_awake_vibrate__';
@@ -442,11 +442,11 @@
       || getHostWindow().innerWidth
       || 360;
     const mobilePanelWidth = Math.max(240, Math.floor(visibleWidth) - 16);
-    const panelHost = doc.createElement('div');
+    const panelHost = doc.createElement('section');
     panelHost.id = PANEL_HOST_ID;
     panelHost.style.cssText = mobile
-      ? `all:initial!important;position:fixed!important;right:8px!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 126px)!important;width:${mobilePanelWidth}px!important;height:auto!important;max-height:min(520px, calc(100dvh - 150px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;`
-      : 'all:initial!important;position:fixed!important;right:14px!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 72px)!important;width:min(340px, calc(100vw - 24px))!important;height:auto!important;max-height:min(520px, calc(100vh - 96px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;';
+      ? `all:initial!important;display:block!important;position:fixed!important;left:auto!important;right:8px!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 126px)!important;width:${mobilePanelWidth}px!important;min-width:0!important;max-width:${mobilePanelWidth}px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100dvh - 150px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;`
+      : 'all:initial!important;display:block!important;position:fixed!important;left:auto!important;right:14px!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom, 0px) + 72px)!important;width:min(340px, calc(100vw - 24px))!important;min-width:0!important;max-width:340px!important;height:auto!important;min-height:0!important;max-height:min(520px, calc(100vh - 96px))!important;margin:0!important;padding:0!important;border:0!important;overflow:visible!important;visibility:visible!important;opacity:1!important;clip:auto!important;clip-path:none!important;z-index:2147483646!important;pointer-events:auto!important;transform:none!important;';
     const panelRoot = panelHost.attachShadow({ mode: 'open' });
     const panelStyle = doc.createElement('style');
     panelStyle.textContent = getUiRoot()?.querySelector(`#${STYLE_ID}`)?.textContent || '';
