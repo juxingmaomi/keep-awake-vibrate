@@ -2,18 +2,36 @@
   'use strict';
 
   const REPO = 'juxingmaomi/keep-awake-vibrate';
-  const VERSION = 'v0.1.11';
+  const VERSION = 'v0.1.12';
   const URL = `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`;
   const STATE_KEY = '__XW_KEEP_AWAKE_VIBRATE_LOADER__';
   const CORE_KEY = '__xw_keep_awake_vibrate__';
   const BUTTON_NAME = '屏幕与震动';
 
-  const hostWindow = (() => {
+  const accessibleWindows = [];
+  let currentWindow = window;
+  for (let index = 0; index < 8; index += 1) {
+    if (!accessibleWindows.includes(currentWindow)) accessibleWindows.push(currentWindow);
     try {
-      if (window.parent && window.parent.document) return window.parent;
-    } catch (_) {}
-    return window;
-  })();
+      if (!currentWindow.parent || currentWindow.parent === currentWindow || !currentWindow.parent.document) break;
+      currentWindow = currentWindow.parent;
+    } catch (_) {
+      break;
+    }
+  }
+  const getWindowArea = (target) => {
+    try {
+      const doc = target.document;
+      return (target.innerWidth || doc.documentElement.clientWidth || 0)
+        * (target.innerHeight || doc.documentElement.clientHeight || 0);
+    } catch (_) {
+      return 0;
+    }
+  };
+  const hostWindow = accessibleWindows.reduce(
+    (best, candidate) => getWindowArea(candidate) >= getWindowArea(best) ? candidate : best,
+    window,
+  );
 
   const state = {
     repo: REPO,
@@ -35,13 +53,14 @@
 
   try {
     await import(URL);
-    const core = hostWindow[CORE_KEY];
+    const core = accessibleWindows.map((target) => target[CORE_KEY]).find((instance) => instance?.togglePanel);
     if (!core || typeof core.togglePanel !== 'function') {
       throw new Error('核心脚本没有提供面板接口');
     }
     const buttonHandler = () => {
       state.lastButtonClickAt = new Date().toISOString();
-      hostWindow[CORE_KEY]?.togglePanel?.();
+      const activeCore = accessibleWindows.map((target) => target[CORE_KEY]).find((instance) => instance?.togglePanel);
+      activeCore?.togglePanel();
     };
     if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
       window.eventOn(window.getButtonEvent(BUTTON_NAME), buttonHandler);

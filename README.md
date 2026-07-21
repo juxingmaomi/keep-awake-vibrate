@@ -20,13 +20,13 @@
 入口壳使用固定版本号。发布新版后，只需在入口壳中修改 `VERSION`，酒馆助手保存脚本时便会立即加载对应版本：
 
 ```js
-const VERSION = 'v0.1.0';
+const VERSION = 'v0.1.12';
 ```
 
 固定版本 CDN 地址：
 
 ```text
-https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.1.0/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/keep-awake-vibrate@v0.1.12/index.js
 ```
 
 ## 浏览器限制

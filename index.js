@@ -2,20 +2,46 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.11';
+  const SCRIPT_VERSION = 'v0.1.12';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
 
-  const hostWindow = (() => {
+  function getWindowArea(targetWindow) {
     try {
-      if (window.parent && window.parent.document) return window.parent;
-    } catch (_) {}
-    return window;
-  })();
+      const doc = targetWindow.document;
+      const width = targetWindow.innerWidth || doc.documentElement.clientWidth || doc.body?.clientWidth || 0;
+      const height = targetWindow.innerHeight || doc.documentElement.clientHeight || doc.body?.clientHeight || 0;
+      return Math.max(0, width) * Math.max(0, height);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function getAccessibleWindows() {
+    const result = [];
+    let current = window;
+    for (let index = 0; index < 8; index += 1) {
+      if (!result.includes(current)) result.push(current);
+      try {
+        if (!current.parent || current.parent === current || !current.parent.document) break;
+        current = current.parent;
+      } catch (_) {
+        break;
+      }
+    }
+    return result;
+  }
+
+  const runtimeWindows = getAccessibleWindows();
+  const hostWindow = runtimeWindows.reduce(
+    (best, candidate) => getWindowArea(candidate) >= getWindowArea(best) ? candidate : best,
+    window,
+  );
   const hostDocument = hostWindow.document;
 
-  if (hostWindow[INSTANCE_KEY]?.stop) hostWindow[INSTANCE_KEY].stop();
+  const previousInstance = runtimeWindows.map((target) => target[INSTANCE_KEY]).find((instance) => instance?.stop);
+  if (previousInstance) previousInstance.stop();
 
   const defaults = {
     keepAwake: false,
@@ -260,10 +286,13 @@
     }
     hostDocument.getElementById(ROOT_ID)?.remove();
     hostDocument.getElementById(STYLE_ID)?.remove();
-    if (hostWindow[INSTANCE_KEY]?.stop === stop) delete hostWindow[INSTANCE_KEY];
+    for (const target of runtimeWindows) {
+      if (target[INSTANCE_KEY]?.stop === stop) delete target[INSTANCE_KEY];
+    }
   }
 
-  hostWindow[INSTANCE_KEY] = { stop, togglePanel, version: SCRIPT_VERSION };
+  const publicInstance = { stop, togglePanel, version: SCRIPT_VERSION };
+  for (const target of runtimeWindows) target[INSTANCE_KEY] = publicInstance;
   addListener(hostDocument, 'visibilitychange', () => {
     if (settings.keepAwake && hostDocument.visibilityState === 'visible') requestWakeLock(false);
   });
