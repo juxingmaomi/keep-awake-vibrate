@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.2';
+  const SCRIPT_VERSION = 'v0.1.3';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -146,11 +146,11 @@
       style.textContent = `
         #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(185, 192, 199, .5); border-radius: 50%; background: rgba(38, 35, 31, .82); color: transparent; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); cursor: grab; font-size: 0; opacity: .82; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity .12s ease, box-shadow .12s ease, transform .12s ease; }
+        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(185, 192, 199, .5); border-radius: 50%; background: rgba(38, 35, 31, .82); color: transparent; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); cursor: pointer; font-size: 0; opacity: .82; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity .12s ease, box-shadow .12s ease, transform .12s ease; }
         #${ROOT_ID} .xw-kav-fab::after { content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: #e24d55; box-shadow: 0 0 8px rgba(226, 77, 85, .62); transform: translate(-50%, -50%); transition: background .12s ease, box-shadow .12s ease; }
         #${ROOT_ID} .xw-kav-fab[data-awake='on'] { opacity: .98; box-shadow: 0 0 12px rgba(61, 220, 132, .32), 0 4px 14px rgba(0, 0, 0, .35); }
         #${ROOT_ID} .xw-kav-fab[data-awake='on']::after { background: #3ddc84; box-shadow: 0 0 9px rgba(61, 220, 132, .72); }
-        #${ROOT_ID} .xw-kav-fab:active { cursor: grabbing; }
+        #${ROOT_ID} .xw-kav-fab:active { cursor: pointer; }
         #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
         #${ROOT_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
