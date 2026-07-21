@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.3';
+  const SCRIPT_VERSION = 'v0.1.4';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -204,7 +204,13 @@
 
     const panel = root.querySelector('.xw-kav-panel');
     const fab = root.querySelector('.xw-kav-fab');
-    let suppressFabClick = false;
+    let suppressFabClickUntil = 0;
+
+    const setPanelOpen = (open) => {
+      settings.panelOpen = open;
+      panel.hidden = !open;
+      saveSettings();
+    };
 
     const placeFab = (x, y, persist = false) => {
       const margin = 6;
@@ -245,9 +251,10 @@
       const originX = rect.left;
       const originY = rect.top;
       let moved = false;
-      fab.setPointerCapture?.(event.pointerId);
+      try { fab.setPointerCapture?.(event.pointerId); } catch (_) {}
 
       const onMove = (moveEvent) => {
+        if (moveEvent.pointerId !== event.pointerId) return;
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
         if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
@@ -256,28 +263,32 @@
           placeFab(originX + dx, originY + dy, false);
         }
       };
-      const onEnd = () => {
-        fab.removeEventListener('pointermove', onMove);
-        fab.removeEventListener('pointerup', onEnd);
-        fab.removeEventListener('pointercancel', onEnd);
+      const cleanupPointer = () => {
+        hostWindow.removeEventListener('pointermove', onMove);
+        hostWindow.removeEventListener('pointerup', onEnd);
+        hostWindow.removeEventListener('pointercancel', onCancel);
+      };
+      const onEnd = (endEvent) => {
+        if (endEvent.pointerId !== event.pointerId) return;
+        cleanupPointer();
+        suppressFabClickUntil = Date.now() + 420;
         if (moved) {
           placeFab(Number.parseFloat(fab.style.left), Number.parseFloat(fab.style.top), true);
-          suppressFabClick = true;
-          hostWindow.setTimeout(() => { suppressFabClick = false; }, 0);
+        } else {
+          setPanelOpen(panel.hidden);
         }
       };
-      fab.addEventListener('pointermove', onMove);
-      fab.addEventListener('pointerup', onEnd);
-      fab.addEventListener('pointercancel', onEnd);
+      const onCancel = (cancelEvent) => {
+        if (cancelEvent.pointerId !== event.pointerId) return;
+        cleanupPointer();
+      };
+      hostWindow.addEventListener('pointermove', onMove, { passive: false });
+      hostWindow.addEventListener('pointerup', onEnd, { passive: false });
+      hostWindow.addEventListener('pointercancel', onCancel, { passive: true });
     });
-    const setPanelOpen = (open) => {
-      settings.panelOpen = open;
-      panel.hidden = !open;
-      saveSettings();
-    };
 
     fab.addEventListener('click', () => {
-      if (!suppressFabClick) setPanelOpen(panel.hidden);
+      if (Date.now() >= suppressFabClickUntil) setPanelOpen(panel.hidden);
     });
     root.querySelector('.xw-kav-close').addEventListener('click', () => setPanelOpen(false));
     root.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
