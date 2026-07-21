@@ -2,7 +2,7 @@
   'use strict';
 
   const REPO = 'juxingmaomi/keep-awake-vibrate';
-  const VERSION = 'v0.1.14';
+  const VERSION = 'v0.1.15';
   const URL = `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`;
   const STATE_KEY = '__XW_KEEP_AWAKE_VIBRATE_LOADER__';
 
