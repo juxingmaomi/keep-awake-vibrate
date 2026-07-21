@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.5';
+  const SCRIPT_VERSION = 'v0.1.6';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -22,8 +22,6 @@
     vibrateOnComplete: true,
     vibrationMs: 250,
     panelOpen: false,
-    fabX: null,
-    fabY: null,
   };
 
   let settings = loadSettings();
@@ -144,13 +142,14 @@
       const style = hostDocument.createElement('style');
       style.id = STYLE_ID;
       style.textContent = `
-        #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
+        #${ROOT_ID} { position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-fab { position: fixed; width: 34px; height: 34px; padding: 0; border: 1px solid rgba(185, 192, 199, .5); border-radius: 50%; background: rgba(38, 35, 31, .82); color: transparent; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); cursor: pointer; font-size: 0; opacity: .82; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity .12s ease, box-shadow .12s ease, transform .12s ease; }
-        #${ROOT_ID} .xw-kav-fab::after { content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; border-radius: 50%; background: #e24d55; box-shadow: 0 0 8px rgba(226, 77, 85, .62); transform: translate(-50%, -50%); transition: background .12s ease, box-shadow .12s ease; }
-        #${ROOT_ID} .xw-kav-fab[data-awake='on'] { opacity: .98; box-shadow: 0 0 12px rgba(61, 220, 132, .32), 0 4px 14px rgba(0, 0, 0, .35); }
-        #${ROOT_ID} .xw-kav-fab[data-awake='on']::after { background: #3ddc84; box-shadow: 0 0 9px rgba(61, 220, 132, .72); }
-        #${ROOT_ID} .xw-kav-fab:active { cursor: pointer; }
+        #${ROOT_ID} .xw-kav-fab { position: fixed; right: 10px; bottom: calc(92px + env(safe-area-inset-bottom)); width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #df5961; cursor: pointer; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; z-index: 2147483647; }
+        #${ROOT_ID} .xw-kav-phone-icon { position: relative; width: 18px; height: 27px; border: 2px solid currentColor; border-radius: 5px; background: rgba(20, 22, 24, .74); box-shadow: 0 3px 10px rgba(0, 0, 0, .3); transition: color .12s ease, box-shadow .12s ease; }
+        #${ROOT_ID} .xw-kav-phone-icon::after { content: ''; position: absolute; left: 50%; bottom: 2px; width: 3px; height: 3px; border-radius: 50%; background: currentColor; transform: translateX(-50%); }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on'] { color: #42ce80; }
+        #${ROOT_ID} .xw-kav-fab[data-awake='on'] .xw-kav-phone-icon { box-shadow: 0 0 9px rgba(66, 206, 128, .38), 0 3px 10px rgba(0, 0, 0, .3); }
+        #${ROOT_ID} .xw-kav-fab:focus-visible { outline: 2px solid currentColor; outline-offset: -6px; }
         #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; }
         #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
         #${ROOT_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
@@ -198,113 +197,19 @@
           <button class="xw-kav-action xw-kav-test" type="button">测试震动</button>
         </div>
       </section>
-      <button class="xw-kav-fab" type="button" title="屏幕与震动设置" aria-label="打开屏幕与震动设置"></button>
+      <button class="xw-kav-fab" type="button" title="屏幕与震动设置" aria-label="打开屏幕与震动设置"><span class="xw-kav-phone-icon" aria-hidden="true"></span></button>
     `;
     hostDocument.body.appendChild(root);
 
     const panel = root.querySelector('.xw-kav-panel');
     const fab = root.querySelector('.xw-kav-fab');
-    let suppressFabClickUntil = 0;
-
     const setPanelOpen = (open) => {
       settings.panelOpen = open;
       panel.hidden = !open;
       saveSettings();
     };
 
-    const placeFab = (x, y, persist = false) => {
-      const margin = 6;
-      const size = 34;
-      const maxX = Math.max(margin, hostWindow.innerWidth - size - margin);
-      const maxY = Math.max(margin, hostWindow.innerHeight - size - margin);
-      const nextX = Math.min(maxX, Math.max(margin, Number(x)));
-      const nextY = Math.min(maxY, Math.max(margin, Number(y)));
-      fab.style.left = `${nextX}px`;
-      fab.style.top = `${nextY}px`;
-      if (persist) {
-        settings.fabX = nextX;
-        settings.fabY = nextY;
-        saveSettings();
-      }
-    };
-
-    const initialX = Number.isFinite(Number(settings.fabX)) && settings.fabX !== null
-      ? Number(settings.fabX)
-      : hostWindow.innerWidth - 52;
-    const initialY = Number.isFinite(Number(settings.fabY)) && settings.fabY !== null
-      ? Number(settings.fabY)
-      : hostWindow.innerHeight - 126;
-    placeFab(initialX, initialY, false);
-
-    const onResize = () => placeFab(
-      Number.parseFloat(fab.style.left) || initialX,
-      Number.parseFloat(fab.style.top) || initialY,
-      true,
-    );
-    addListener(hostWindow, 'resize', onResize);
-
-    let dragState = null;
-    let lastTouchTime = 0;
-    const getPoint = (event) => {
-      const source = event.touches?.[0] || event.changedTouches?.[0] || event;
-      return { x: source.clientX, y: source.clientY };
-    };
-    const cleanupDrag = () => {
-      hostWindow.removeEventListener('mousemove', onDragMove);
-      hostWindow.removeEventListener('mouseup', onDragEnd);
-      hostWindow.removeEventListener('touchmove', onDragMove);
-      hostWindow.removeEventListener('touchend', onDragEnd);
-      hostWindow.removeEventListener('touchcancel', onDragCancel);
-    };
-    const onDragMove = (event) => {
-      if (!dragState) return;
-      const point = getPoint(event);
-      const dx = point.x - dragState.startX;
-      const dy = point.y - dragState.startY;
-      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) dragState.moved = true;
-      if (dragState.moved) {
-        if (event.cancelable) event.preventDefault();
-        placeFab(dragState.left + dx, dragState.top + dy, false);
-      }
-    };
-    const onDragEnd = (event) => {
-      if (!dragState) return;
-      const moved = dragState.moved;
-      dragState = null;
-      cleanupDrag();
-      suppressFabClickUntil = Date.now() + 700;
-      if (event.cancelable) event.preventDefault();
-      if (moved) {
-        placeFab(Number.parseFloat(fab.style.left), Number.parseFloat(fab.style.top), true);
-      } else {
-        setPanelOpen(panel.hidden);
-      }
-    };
-    const onDragCancel = () => {
-      dragState = null;
-      cleanupDrag();
-    };
-    const onDragStart = (event) => {
-      if (event.type === 'touchstart') {
-        lastTouchTime = Date.now();
-      } else if (event.type === 'mousedown') {
-        if (event.button !== 0 || Date.now() - lastTouchTime < 700) return;
-      }
-      const point = getPoint(event);
-      const rect = fab.getBoundingClientRect();
-      dragState = { startX: point.x, startY: point.y, left: rect.left, top: rect.top, moved: false };
-      hostWindow.addEventListener('mousemove', onDragMove);
-      hostWindow.addEventListener('mouseup', onDragEnd);
-      hostWindow.addEventListener('touchmove', onDragMove, { passive: false });
-      hostWindow.addEventListener('touchend', onDragEnd, { passive: false });
-      hostWindow.addEventListener('touchcancel', onDragCancel, { passive: true });
-    };
-    fab.addEventListener('mousedown', onDragStart);
-    fab.addEventListener('touchstart', onDragStart, { passive: true });
-
-    fab.addEventListener('click', () => {
-      if (Date.now() >= suppressFabClickUntil) setPanelOpen(panel.hidden);
-    });
+    fab.addEventListener('click', () => setPanelOpen(panel.hidden));
     root.querySelector('.xw-kav-close').addEventListener('click', () => setPanelOpen(false));
     root.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
     root.querySelector('.xw-kav-test').addEventListener('click', () => vibrate([120, 70, 180], true));
