@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.8';
+  const SCRIPT_VERSION = 'v0.1.9';
   const BUTTON_NAME = '屏幕与震动';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
@@ -135,16 +135,14 @@
     }
   }
 
-  function render() {
+  function renderPanel() {
     hostDocument.getElementById(ROOT_ID)?.remove();
     if (!hostDocument.getElementById(STYLE_ID)) {
       const style = hostDocument.createElement('style');
       style.id = STYLE_ID;
       style.textContent = `
-        #${ROOT_ID} { position: fixed; inset: 0; z-index: 100000; pointer-events: none; font-family: inherit; color: var(--SmartThemeBodyColor, #eee); }
+        #${ROOT_ID} { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 2147483646; width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); color: var(--SmartThemeBodyColor, #eee); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); font-family: inherit; }
         #${ROOT_ID} * { box-sizing: border-box; letter-spacing: 0; }
-        #${ROOT_ID} .xw-kav-panel { position: fixed; right: 14px; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 8px; background: var(--SmartThemeBlurTintColor, rgba(30,30,34,.97)); box-shadow: 0 10px 28px rgba(0,0,0,.38); backdrop-filter: blur(10px); pointer-events: auto; z-index: 1; }
-        #${ROOT_ID} .xw-kav-panel[hidden] { display: none; }
         #${ROOT_ID} .xw-kav-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
         #${ROOT_ID} .xw-kav-title { margin: 0; font-size: 16px; line-height: 1.3; }
         #${ROOT_ID} .xw-kav-close { width: 34px; height: 34px; border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 22px; }
@@ -159,15 +157,15 @@
         #${ROOT_ID} .xw-kav-status[data-tone='error'] { color: #ff8585; }
         #${ROOT_ID} .xw-kav-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         #${ROOT_ID} .xw-kav-action { min-height: 38px; border: 1px solid var(--SmartThemeBorderColor, #666); border-radius: 6px; background: rgba(127,127,127,.16); color: inherit; cursor: pointer; font: inherit; font-size: 13px; }
-        @media (max-width: 520px) { #${ROOT_ID} .xw-kav-panel { right: 10px; bottom: calc(82px + env(safe-area-inset-bottom)); width: calc(100vw - 20px); } }
+        @media (max-width: 520px) { #${ROOT_ID} { right: 8px; bottom: calc(126px + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 16px); } }
       `;
       hostDocument.head.appendChild(style);
     }
 
-    const root = hostDocument.createElement('div');
-    root.id = ROOT_ID;
-    root.innerHTML = `
-      <section class="xw-kav-panel" ${settings.panelOpen ? '' : 'hidden'} aria-label="屏幕与震动设置">
+    const panel = hostDocument.createElement('section');
+    panel.id = ROOT_ID;
+    panel.setAttribute('aria-label', '屏幕与震动设置');
+    panel.innerHTML = `
         <div class="xw-kav-head">
           <h2 class="xw-kav-title">屏幕与震动 <small style="font-size:11px;opacity:.62">${SCRIPT_VERSION}</small></h2>
           <button class="xw-kav-close" type="button" title="关闭面板" aria-label="关闭面板">&times;</button>
@@ -189,24 +187,16 @@
           <button class="xw-kav-action xw-kav-retry" type="button">重试常亮</button>
           <button class="xw-kav-action xw-kav-test" type="button">测试震动</button>
         </div>
-      </section>
     `;
     const isMobile = hostWindow.matchMedia?.('(max-width: 820px)').matches;
     const mountTarget = isMobile ? hostDocument.getElementById('movingDivs') || hostDocument.body : hostDocument.body;
-    mountTarget.appendChild(root);
+    mountTarget.appendChild(panel);
 
-    const panel = root.querySelector('.xw-kav-panel');
-    const setPanelOpen = (open) => {
-      settings.panelOpen = open;
-      panel.hidden = !open;
-      saveSettings();
-    };
+    panel.querySelector('.xw-kav-close').addEventListener('click', () => panel.remove());
+    panel.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
+    panel.querySelector('.xw-kav-test').addEventListener('click', () => vibrate([120, 70, 180], true));
 
-    root.querySelector('.xw-kav-close').addEventListener('click', () => setPanelOpen(false));
-    root.querySelector('.xw-kav-retry').addEventListener('click', () => requestWakeLock(true));
-    root.querySelector('.xw-kav-test').addEventListener('click', () => vibrate([120, 70, 180], true));
-
-    root.querySelectorAll('[data-setting]').forEach((input) => {
+    panel.querySelectorAll('[data-setting]').forEach((input) => {
       input.addEventListener('change', async () => {
         const key = input.dataset.setting;
         if (input.type === 'checkbox') settings[key] = input.checked;
@@ -223,14 +213,20 @@
     if (!settings.keepAwake) setStatus('常亮已关闭');
     else requestWakeLock(false);
 
-    return () => setPanelOpen(panel.hidden);
+    return panel;
+  }
+
+  function togglePanel() {
+    const existing = hostDocument.getElementById(ROOT_ID);
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    renderPanel();
   }
 
   function bindSettingsButton(togglePanel) {
     try {
-      if (typeof window.appendInexistentScriptButtons === 'function') {
-        window.appendInexistentScriptButtons([{ name: BUTTON_NAME, visible: true }]);
-      }
       if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
         const unsubscribe = window.eventOn(window.getButtonEvent(BUTTON_NAME), togglePanel);
         if (typeof unsubscribe === 'function') cleanups.push(unsubscribe);
@@ -287,7 +283,7 @@
   });
   addListener(window, 'pagehide', stop, { once: true });
 
-  const togglePanel = render();
   bindSettingsButton(togglePanel);
   bindTavernEvents();
+  if (settings.keepAwake) requestWakeLock(false);
 })();
