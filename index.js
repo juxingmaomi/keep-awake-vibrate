@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.4';
+  const SCRIPT_VERSION = 'v0.1.5';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -243,49 +243,64 @@
     );
     addListener(hostWindow, 'resize', onResize);
 
-    fab.addEventListener('pointerdown', (event) => {
-      if (event.button != null && event.button !== 0) return;
+    let dragState = null;
+    let lastTouchTime = 0;
+    const getPoint = (event) => {
+      const source = event.touches?.[0] || event.changedTouches?.[0] || event;
+      return { x: source.clientX, y: source.clientY };
+    };
+    const cleanupDrag = () => {
+      hostWindow.removeEventListener('mousemove', onDragMove);
+      hostWindow.removeEventListener('mouseup', onDragEnd);
+      hostWindow.removeEventListener('touchmove', onDragMove);
+      hostWindow.removeEventListener('touchend', onDragEnd);
+      hostWindow.removeEventListener('touchcancel', onDragCancel);
+    };
+    const onDragMove = (event) => {
+      if (!dragState) return;
+      const point = getPoint(event);
+      const dx = point.x - dragState.startX;
+      const dy = point.y - dragState.startY;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) dragState.moved = true;
+      if (dragState.moved) {
+        if (event.cancelable) event.preventDefault();
+        placeFab(dragState.left + dx, dragState.top + dy, false);
+      }
+    };
+    const onDragEnd = (event) => {
+      if (!dragState) return;
+      const moved = dragState.moved;
+      dragState = null;
+      cleanupDrag();
+      suppressFabClickUntil = Date.now() + 700;
+      if (event.cancelable) event.preventDefault();
+      if (moved) {
+        placeFab(Number.parseFloat(fab.style.left), Number.parseFloat(fab.style.top), true);
+      } else {
+        setPanelOpen(panel.hidden);
+      }
+    };
+    const onDragCancel = () => {
+      dragState = null;
+      cleanupDrag();
+    };
+    const onDragStart = (event) => {
+      if (event.type === 'touchstart') {
+        lastTouchTime = Date.now();
+      } else if (event.type === 'mousedown') {
+        if (event.button !== 0 || Date.now() - lastTouchTime < 700) return;
+      }
+      const point = getPoint(event);
       const rect = fab.getBoundingClientRect();
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const originX = rect.left;
-      const originY = rect.top;
-      let moved = false;
-      try { fab.setPointerCapture?.(event.pointerId); } catch (_) {}
-
-      const onMove = (moveEvent) => {
-        if (moveEvent.pointerId !== event.pointerId) return;
-        const dx = moveEvent.clientX - startX;
-        const dy = moveEvent.clientY - startY;
-        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
-        if (moved) {
-          moveEvent.preventDefault();
-          placeFab(originX + dx, originY + dy, false);
-        }
-      };
-      const cleanupPointer = () => {
-        hostWindow.removeEventListener('pointermove', onMove);
-        hostWindow.removeEventListener('pointerup', onEnd);
-        hostWindow.removeEventListener('pointercancel', onCancel);
-      };
-      const onEnd = (endEvent) => {
-        if (endEvent.pointerId !== event.pointerId) return;
-        cleanupPointer();
-        suppressFabClickUntil = Date.now() + 420;
-        if (moved) {
-          placeFab(Number.parseFloat(fab.style.left), Number.parseFloat(fab.style.top), true);
-        } else {
-          setPanelOpen(panel.hidden);
-        }
-      };
-      const onCancel = (cancelEvent) => {
-        if (cancelEvent.pointerId !== event.pointerId) return;
-        cleanupPointer();
-      };
-      hostWindow.addEventListener('pointermove', onMove, { passive: false });
-      hostWindow.addEventListener('pointerup', onEnd, { passive: false });
-      hostWindow.addEventListener('pointercancel', onCancel, { passive: true });
-    });
+      dragState = { startX: point.x, startY: point.y, left: rect.left, top: rect.top, moved: false };
+      hostWindow.addEventListener('mousemove', onDragMove);
+      hostWindow.addEventListener('mouseup', onDragEnd);
+      hostWindow.addEventListener('touchmove', onDragMove, { passive: false });
+      hostWindow.addEventListener('touchend', onDragEnd, { passive: false });
+      hostWindow.addEventListener('touchcancel', onDragCancel, { passive: true });
+    };
+    fab.addEventListener('mousedown', onDragStart);
+    fab.addEventListener('touchstart', onDragStart, { passive: true });
 
     fab.addEventListener('click', () => {
       if (Date.now() >= suppressFabClickUntil) setPanelOpen(panel.hidden);
