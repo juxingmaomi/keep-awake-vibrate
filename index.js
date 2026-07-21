@@ -2,7 +2,7 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.10';
+  const SCRIPT_VERSION = 'v0.1.11';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -225,24 +225,29 @@
   }
 
   function bindTavernEvents() {
-    const eventOn = getApi('eventOn');
-    const tavernEvents = getApi('tavern_events');
+    const eventOn = window.eventOn;
+    const tavernEvents = window.tavern_events;
     if (typeof eventOn !== 'function' || !tavernEvents) {
       toast('未找到酒馆助手事件接口，生成完毕震动暂不可用。', 'warning');
       return;
     }
 
-    const subscriptions = [
-      eventOn(tavernEvents.GENERATION_STARTED, () => { generationActive = true; }),
-      eventOn(tavernEvents.GENERATION_STOPPED, () => { generationActive = false; }),
-      eventOn(tavernEvents.GENERATION_ENDED, () => {
-        if (!generationActive) return;
-        generationActive = false;
-        if (settings.vibrateOnComplete) vibrate(Number(settings.vibrationMs) || defaults.vibrationMs);
-      }),
-    ];
-    for (const unsubscribe of subscriptions) {
-      if (typeof unsubscribe === 'function') cleanups.push(unsubscribe);
+    try {
+      const subscriptions = [
+        window.eventOn(tavernEvents.GENERATION_STARTED, () => { generationActive = true; }),
+        window.eventOn(tavernEvents.GENERATION_STOPPED, () => { generationActive = false; }),
+        window.eventOn(tavernEvents.GENERATION_ENDED, () => {
+          if (!generationActive) return;
+          generationActive = false;
+          if (settings.vibrateOnComplete) vibrate(Number(settings.vibrationMs) || defaults.vibrationMs);
+        }),
+      ];
+      for (const subscription of subscriptions) {
+        if (typeof subscription?.stop === 'function') cleanups.push(() => subscription.stop());
+      }
+    } catch (error) {
+      console.error('[屏幕与震动] 绑定生成事件失败', error);
+      toast('生成事件绑定失败，面板仍可使用。', 'warning');
     }
   }
 
