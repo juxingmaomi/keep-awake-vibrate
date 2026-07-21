@@ -2,7 +2,8 @@
   'use strict';
 
   const INSTANCE_KEY = '__xw_keep_awake_vibrate__';
-  const SCRIPT_VERSION = 'v0.1.13';
+  const SCRIPT_VERSION = 'v0.1.14';
+  const BUTTON_NAME = '屏幕与震动';
   const STORAGE_KEY = 'xw_keep_awake_vibrate_settings_v1';
   const ROOT_ID = 'xw-kav-root';
   const STYLE_ID = 'xw-kav-style';
@@ -54,6 +55,7 @@
   let wakeLock = null;
   let generationActive = false;
   let disposed = false;
+  let lastPanelOpenAt = 0;
   const cleanups = [];
 
   function loadSettings() {
@@ -239,13 +241,39 @@
     return panel;
   }
 
+  function openPanel() {
+    lastPanelOpenAt = Date.now();
+    if (hostDocument.getElementById(ROOT_ID)) return;
+    renderPanel();
+  }
+
   function togglePanel() {
+    if (Date.now() - lastPanelOpenAt < 250) return;
     const existing = hostDocument.getElementById(ROOT_ID);
     if (existing) {
       existing.remove();
       return;
     }
-    renderPanel();
+    openPanel();
+  }
+
+  function bindTavernHelperButton() {
+    const handler = () => openPanel();
+    try {
+      if (typeof window.getButtonEvent === 'function' && typeof window.eventOn === 'function') {
+        const subscription = window.eventOn(window.getButtonEvent(BUTTON_NAME), handler);
+        if (typeof subscription?.stop === 'function') cleanups.push(() => subscription.stop());
+        return true;
+      }
+      if (typeof window.eventOnButton === 'function') {
+        window.eventOnButton(BUTTON_NAME, handler);
+        return true;
+      }
+    } catch (error) {
+      console.warn('[屏幕与震动] 注册 TavernHelper 按钮失败', error);
+    }
+    console.error('[屏幕与震动] 未找到 TavernHelper 脚本按钮事件接口');
+    return false;
   }
 
   function bindTavernEvents() {
@@ -289,13 +317,14 @@
     }
   }
 
-  const publicInstance = { stop, togglePanel, version: SCRIPT_VERSION };
+  const publicInstance = { stop, openPanel, togglePanel, version: SCRIPT_VERSION };
   for (const target of runtimeWindows) target[INSTANCE_KEY] = publicInstance;
   addListener(hostDocument, 'visibilitychange', () => {
     if (settings.keepAwake && hostDocument.visibilityState === 'visible') requestWakeLock(false);
   });
   addListener(window, 'pagehide', stop, { once: true });
 
+  bindTavernHelperButton();
   bindTavernEvents();
   if (settings.keepAwake) requestWakeLock(false);
 })();
