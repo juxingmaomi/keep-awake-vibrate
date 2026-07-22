@@ -1,13 +1,13 @@
 // == TavernHelper Script ==
 // name: 屏幕常亮与生成震动
 // author: Codex
-// version: v0.2.7
+// version: v0.2.8
 // description: 在酒馆前台保持屏幕常亮，并在正常生成结束后震动提醒。
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '屏幕常亮与生成震动';
-  const SCRIPT_VERSION = 'v0.2.7';
+  const SCRIPT_VERSION = 'v0.2.8';
   const REPOSITORY = 'juxingmaomi/keep-awake-vibrate';
   const BUTTON_NAME = '屏幕与震动';
   const INSTANCE_KEY = '__xw_keep_awake_vibrate_v2__';
@@ -21,6 +21,7 @@
 
   const DEFAULT_SETTINGS = {
     keepAwake: false,
+    showFloatingButton: true,
     vibrateOnComplete: true,
     vibrationMs: 250,
     buttonPosition: null,
@@ -202,6 +203,7 @@
     button.dataset.active = settings.keepAwake ? 'true' : 'false';
     button.title = settings.keepAwake ? '屏幕常亮已开启，点击打开设置' : '屏幕常亮已关闭，点击打开设置';
     button.setAttribute('aria-label', button.title);
+    button.style.display = settings.showFloatingButton ? '' : 'none';
   }
 
   function clampButtonToViewport(button, left, top) {
@@ -356,7 +358,6 @@
     updateFloatingButtonState();
     applySavedButtonPosition(button);
     bindFloatingButtonDrag(button);
-    button.style.display = '';
     return button;
   }
 
@@ -486,7 +487,7 @@
       try { panelHost.hidePopover?.(); } catch (_) {}
       panelHost.remove();
     }
-    ensureFloatingButton().style.display = '';
+    ensureFloatingButton();
   }
 
   function openPanel() {
@@ -534,6 +535,10 @@
         <label class="xw-kav-row">
           <span class="xw-kav-label">保持屏幕常亮<span class="xw-kav-help">酒馆在前台时阻止自动熄屏</span></span>
           <input data-setting="keepAwake" type="checkbox" ${settings.keepAwake ? 'checked' : ''}>
+        </label>
+        <label class="xw-kav-row">
+          <span class="xw-kav-label">显示悬浮按钮<span class="xw-kav-help">当前设备与浏览器独立保存</span></span>
+          <input data-setting="showFloatingButton" type="checkbox" ${settings.showFloatingButton ? 'checked' : ''}>
         </label>
         <label class="xw-kav-row">
           <span class="xw-kav-label">生成完毕震动<span class="xw-kav-help">正常生成结束提醒，手动停止不提醒</span></span>
